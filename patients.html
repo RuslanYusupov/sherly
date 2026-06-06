@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Пациенты">
+<title>Пациенты</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f5;
+    --bg3: #ebebeb;
+    --text: #1a1a1a;
+    --text2: #666666;
+    --text3: #999999;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --accent: #0a7c5c;
+    --accent-bg: #e1f5ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --text: #f2f2f7;
+      --text2: #aeaeb2;
+      --text3: #636366;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --accent: #30d158;
+      --accent-bg: #0a3d22;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg2); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; color: var(--text); font-size: 16px; }
+  body { overscroll-behavior: none; }
+
+  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg2); }
+
+  /* Header */
+  .header { background: var(--bg); padding: 52px 16px 12px; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .header-row { display: flex; align-items: center; gap: 10px; }
+  .header-icon { width: 38px; height: 38px; background: var(--accent-bg); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-icon i { font-size: 22px; color: var(--accent); }
+  .header-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .header-sub { font-size: 13px; color: var(--text2); margin-top: 1px; }
+
+  /* Tabs */
+  .tabs { background: var(--bg); padding: 0 16px; display: flex; gap: 0; border-bottom: 0.5px solid var(--border); }
+  .tab { flex: 1; padding: 12px 4px 10px; text-align: center; font-size: 13px; font-weight: 500; border: none; background: none; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab i { font-size: 17px; }
+
+  /* Scroll area */
+  .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Form */
+  .card { background: var(--bg); border-radius: var(--radius-lg); margin-bottom: 12px; overflow: hidden; }
+  .card-header { padding: 12px 14px 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); }
+  .field { padding: 0 14px; }
+  .field:last-child { padding-bottom: 6px; }
+  .field + .field { border-top: 0.5px solid var(--border); }
+  .field label { display: block; font-size: 12px; color: var(--text2); padding-top: 10px; margin-bottom: 4px; }
+  .field input, .field select, .field textarea {
+    width: 100%; border: none; background: none; font-size: 16px; color: var(--text);
+    font-family: inherit; padding: 0 0 10px; outline: none; appearance: none; -webkit-appearance: none;
+  }
+  .field select { cursor: pointer; }
+  .field textarea { resize: none; line-height: 1.5; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .field-row .field + .field { border-top: none; border-left: 0.5px solid var(--border); }
+  .field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .field-row3 .field + .field { border-top: none; border-left: 0.5px solid var(--border); }
+
+  .imt-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin: 0 0 10px; }
+  .imt-low { background: #dbeafe; color: #1e40af; }
+  .imt-norm { background: #dcfce7; color: #166534; }
+  .imt-over { background: #fef9c3; color: #854d0e; }
+  .imt-obese { background: #fee2e2; color: #991b1b; }
+
+  /* Buttons */
+  .btn-primary { width: 100%; padding: 16px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-lg); font-size: 17px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-primary:active { opacity: 0.8; }
+  .btn-primary:disabled { opacity: 0.4; }
+  .btn-secondary { padding: 10px 16px; background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 15px; cursor: pointer; font-family: inherit; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+  .btn-secondary:active { background: var(--bg2); }
+
+  /* Success */
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #166534; color: #fff; padding: 12px 20px; border-radius: 20px; font-size: 14px; font-weight: 500; display: none; align-items: center; gap: 8px; z-index: 100; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+  .toast.show { display: flex; }
+
+  /* Search */
+  .search-wrap { position: relative; margin-bottom: 12px; }
+  .search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text3); pointer-events: none; }
+  .search-wrap input { width: 100%; padding: 12px 12px 12px 40px; background: var(--bg); border: none; border-radius: var(--radius-lg); font-size: 16px; color: var(--text); font-family: inherit; outline: none; }
+
+  /* Patient cards */
+  .patient-card { background: var(--bg); border-radius: var(--radius-lg); padding: 13px 14px; margin-bottom: 8px; cursor: pointer; active: background: var(--bg2); }
+  .patient-card:active { background: var(--bg3); }
+  .pc-row { display: flex; justify-content: space-between; align-items: center; }
+  .pc-name { font-size: 16px; font-weight: 600; color: var(--text); }
+  .pc-meta { font-size: 13px; color: var(--text2); margin-top: 3px; }
+  .pc-date { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .status-badge { padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .s-new { background: #dbeafe; color: #1e40af; }
+  .s-consult { background: #fef9c3; color: #854d0e; }
+  .s-op { background: #dcfce7; color: #166534; }
+  .s-done { background: #ede9fe; color: #5b21b6; }
+  .s-cancel { background: #fee2e2; color: #991b1b; }
+
+  /* Detail */
+  .detail-back { display: flex; align-items: center; gap: 6px; background: none; border: none; font-size: 16px; color: var(--accent); cursor: pointer; font-family: inherit; padding: 0 0 14px; }
+  .detail-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .detail-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 11px 14px; border-bottom: 0.5px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .dk { font-size: 14px; color: var(--text2); flex-shrink: 0; }
+  .dv { font-size: 14px; color: var(--text); text-align: right; }
+
+  /* Settings */
+  .cfg-step { background: var(--bg); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 12px; }
+  .cfg-step-num { width: 26px; height: 26px; background: var(--accent); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .cfg-step p { font-size: 14px; color: var(--text2); line-height: 1.6; margin-top: 6px; }
+  .cfg-step code { background: var(--bg2); border-radius: 5px; padding: 1px 6px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 13px; color: var(--text); }
+  .url-field { background: var(--bg); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; }
+  .url-field label { display: block; font-size: 12px; color: var(--text3); padding: 12px 14px 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .url-field input { width: 100%; border: none; background: none; font-size: 15px; color: var(--text); font-family: inherit; padding: 4px 14px 14px; outline: none; }
+  .url-saved { font-size: 13px; color: var(--accent); padding: 0 4px 12px; display: none; }
+
+  .empty { text-align: center; padding: 48px 20px; color: var(--text3); font-size: 15px; line-height: 1.6; }
+  .empty i { font-size: 48px; margin-bottom: 12px; display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-row">
+      <div class="header-icon"><i class="ti ti-clipboard-heart"></i></div>
+      <div>
+        <div class="header-title">Пациенты</div>
+        <div class="header-sub" id="patient-count">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('add')"><i class="ti ti-plus"></i> Добавить</button>
+    <button class="tab" onclick="switchTab('list')"><i class="ti ti-list"></i> Список</button>
+    <button class="tab" onclick="switchTab('cfg')"><i class="ti ti-settings"></i> Настройка</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ADD -->
+    <div id="sec-add" class="section active">
+
+      <div class="card">
+        <div class="card-header">Заявка</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Дата заявки</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="field">
+            <label>Откуда заявка</label>
+            <select id="f-source">
+              <option value="">—</option>
+              <option>Instagram</option>
+              <option>Telegram</option>
+              <option>ВКонтакте</option>
+              <option>Сайт</option>
+              <option>Рекомендация</option>
+              <option>Другое</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Телефон / имя в Telegram</label>
+          <input type="text" id="f-phone" placeholder="+7 999 ... или @username" inputmode="tel">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Пациент</div>
+        <div class="field">
+          <label>Имя пациента</label>
+          <input type="text" id="f-name" placeholder="Фамилия Имя" autocomplete="off">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Город</label>
+            <input type="text" id="f-city" placeholder="Москва">
+          </div>
+          <div class="field">
+            <label>Возраст</label>
+            <input type="number" id="f-age" placeholder="35" inputmode="numeric" min="1" max="120">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Физические данные</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Вес (кг)</label>
+            <input type="number" id="f-weight" placeholder="70" inputmode="decimal" oninput="calcIMT()">
+          </div>
+          <div class="field">
+            <label>Рост (см)</label>
+            <input type="number" id="f-height" placeholder="170" inputmode="decimal" oninput="calcIMT()">
+          </div>
+        </div>
+        <div class="field">
+          <label>ИМТ (авто)</label>
+          <input type="text" id="f-imt" readonly placeholder="—">
+          <div id="imt-label"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Медицинские данные</div>
+        <div class="field">
+          <label>Диагнозы</label>
+          <textarea id="f-diag" rows="3" placeholder="Перечислите через запятую..."></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Статус и даты</div>
+        <div class="field">
+          <label>Статус</label>
+          <select id="f-status">
+            <option>Новая</option>
+            <option>На консультации</option>
+            <option>На операции</option>
+            <option>Выполнено</option>
+            <option>Отмена</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Дата консультации</label>
+            <input type="date" id="f-consult">
+          </div>
+          <div class="field">
+            <label>Дата операции</label>
+            <input type="date" id="f-op">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Комментарий</div>
+        <div class="field">
+          <label>Заметки</label>
+          <textarea id="f-comment" rows="3" placeholder="Дополнительная информация..."></textarea>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="submit-btn" onclick="submitPatient()">
+        <i class="ti ti-cloud-upload"></i> Добавить пациента
+      </button>
+      <div style="height:16px;"></div>
+    </div>
+
+    <!-- LIST -->
+    <div id="sec-list" class="section">
+      <div id="detail-view" style="display:none;">
+        <button class="detail-back" onclick="closeDetail()"><i class="ti ti-chevron-left"></i> Назад</button>
+        <div id="detail-content"></div>
+      </div>
+      <div id="list-view">
+        <div class="search-wrap">
+          <i class="ti ti-search"></i>
+          <input type="text" id="search-input" placeholder="Поиск..." oninput="filterPatients()">
+        </div>
+        <div id="patients-list"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="sec-cfg" class="section">
+      <div class="cfg-step">
+        <div class="cfg-step-num">1</div>
+        <strong>Откройте Apps Script</strong>
+        <p>В Google таблице: <code>Расширения</code> → <code>Apps Script</code>. Удалите весь текст и вставьте скопированный код.</p>
+      </div>
+      <button class="btn-secondary" style="width:100%;justify-content:center;margin-bottom:12px;" onclick="copyScript()">
+        <i class="ti ti-copy"></i> Скопировать код скрипта
+      </button>
+
+      <div class="cfg-step">
+        <div class="cfg-step-num">2</div>
+        <strong>Разверните скрипт</strong>
+        <p>Нажмите <code>Развернуть</code> → <code>Новое развёртывание</code> → тип: <code>Веб-приложение</code> → доступ: <code>Все</code>. Скопируйте URL и вставьте ниже.</p>
+      </div>
+
+      <div class="url-field">
+        <label>URL веб-приложения</label>
+        <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/..." oninput="saveUrl()" inputmode="url">
+      </div>
+      <div class="url-saved" id="url-saved"><i class="ti ti-check"></i> URL сохранён</div>
+
+      <div class="cfg-step">
+        <div class="cfg-step-num">3</div>
+        <strong>Заголовки в таблице</strong>
+        <p>Убедитесь, что первая строка таблицы — это заголовки в том же порядке, что вы указали: дата заявки, телефон, откуда, имя, город, вес, рост, возраст, ИМТ, диагнозы, статус, дата консультации, дата операции, комментарий.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-text">Готово!</span></div>
+
+<script>
+const SCRIPT_CODE = `function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  if (data.action === 'add') {
+    sheet.appendRow([
+      data.date, data.phone, data.source, data.name,
+      data.city, data.weight, data.height, data.age,
+      data.imt, data.diagnoses, data.status,
+      data.consultDate, data.opDate, data.comment
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({ok:true}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  if (data.action === 'getAll') {
+    var rows = sheet.getDataRange().getValues();
+    var result = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      result.push({
+        _row: i + 1,
+        date: r[0], phone: r[1], source: r[2], name: r[3],
+        city: r[4], weight: r[5], height: r[6], age: r[7],
+        imt: r[8], diagnoses: r[9], status: r[10],
+        consultDate: r[11], opDate: r[12], comment: r[13]
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  if (data.action === 'update') {
+    sheet.getRange(data._row, 1, 1, 14).setValues([[
+      data.date, data.phone, data.source, data.name,
+      data.city, data.weight, data.height, data.age,
+      data.imt, data.diagnoses, data.status,
+      data.consultDate, data.opDate, data.comment
+    ]]);
+    return ContentService.createTextOutput(JSON.stringify({ok:true}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+function doGet(e) { return doPost(e); }`;
+
+let allPatients = [];
+let scriptUrl = localStorage.getItem('patients_script_url') || '';
+let currentEditRow = null;
+
+function init() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f-date').value = today;
+  if (scriptUrl) {
+    document.getElementById('cfg-url').value = scriptUrl;
+    document.getElementById('url-saved').style.display = 'block';
+  }
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const tabs = ['add','list','cfg'];
+  document.querySelectorAll('.tab')[tabs.indexOf(t)].classList.add('active');
+  document.getElementById('sec-'+t).classList.add('active');
+  if (t === 'list') loadPatients();
+}
+
+function calcIMT() {
+  const w = parseFloat(document.getElementById('f-weight').value);
+  const h = parseFloat(document.getElementById('f-height').value);
+  const lbl = document.getElementById('imt-label');
+  if (w && h && h > 50) {
+    const imt = (w / Math.pow(h/100, 2)).toFixed(1);
+    document.getElementById('f-imt').value = imt;
+    let cls, txt;
+    if (imt < 18.5)      { cls='imt-low';   txt='Дефицит веса — ИМТ '+imt; }
+    else if (imt < 25)   { cls='imt-norm';  txt='Норма — ИМТ '+imt; }
+    else if (imt < 30)   { cls='imt-over';  txt='Избыток веса — ИМТ '+imt; }
+    else                 { cls='imt-obese'; txt='Ожирение — ИМТ '+imt; }
+    lbl.innerHTML = '<span class="imt-badge '+cls+'">'+txt+'</span>';
+  } else {
+    document.getElementById('f-imt').value = '';
+    lbl.innerHTML = '';
+  }
+}
+
+function getFormData(action) {
+  return {
+    action: action || 'add',
+    date:        document.getElementById('f-date').value,
+    phone:       document.getElementById('f-phone').value,
+    source:      document.getElementById('f-source').value,
+    name:        document.getElementById('f-name').value,
+    city:        document.getElementById('f-city').value,
+    weight:      document.getElementById('f-weight').value,
+    height:      document.getElementById('f-height').value,
+    age:         document.getElementById('f-age').value,
+    imt:         document.getElementById('f-imt').value,
+    diagnoses:   document.getElementById('f-diag').value,
+    status:      document.getElementById('f-status').value,
+    consultDate: document.getElementById('f-consult').value,
+    opDate:      document.getElementById('f-op').value,
+    comment:     document.getElementById('f-comment').value
+  };
+}
+
+function resetForm() {
+  ['f-phone','f-name','f-city','f-weight','f-height','f-age','f-imt','f-diag','f-consult','f-op','f-comment']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-source').value = '';
+  document.getElementById('f-status').value = 'Новая';
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('imt-label').innerHTML = '';
+  currentEditRow = null;
+  const btn = document.getElementById('submit-btn');
+  btn.innerHTML = '<i class="ti ti-cloud-upload"></i> Добавить пациента';
+  btn.onclick = submitPatient;
+}
+
+async function submitPatient() {
+  if (!scriptUrl) { alert('Сначала настройте URL скрипта во вкладке «Настройка»'); return; }
+  const data = getFormData('add');
+  if (!data.name.trim()) { alert('Введите имя пациента'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> Отправка...';
+  try {
+    await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(data) });
+    showToast('Пациент добавлен!');
+    resetForm();
+  } catch(e) {
+    alert('Ошибка отправки. Проверьте URL скрипта.');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-cloud-upload"></i> Добавить пациента';
+}
+
+async function savePatientEdit() {
+  if (!scriptUrl) { alert('Нет URL скрипта'); return; }
+  const data = getFormData('update');
+  data._row = currentEditRow;
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> Сохранение...';
+  try {
+    await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(data) });
+    showToast('Изменения сохранены!');
+    resetForm();
+  } catch(e) {
+    alert('Ошибка сохранения.');
+  }
+  btn.disabled = false;
+}
+
+async function loadPatients() {
+  if (!scriptUrl) {
+    document.getElementById('patients-list').innerHTML = '<div class="empty"><i class="ti ti-settings"></i>Настройте подключение во вкладке «Настройка»</div>';
+    return;
+  }
+  document.getElementById('patients-list').innerHTML = '<div class="empty"><i class="ti ti-loader"></i>Загрузка...</div>';
+  try {
+    const r = await fetch(scriptUrl + '?action=getAll&_=' + Date.now());
+    const text = await r.text();
+    allPatients = JSON.parse(text);
+    renderPatients(allPatients);
+    document.getElementById('patient-count').textContent = allPatients.length + ' пациентов';
+  } catch(e) {
+    document.getElementById('patients-list').innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i>Ошибка загрузки. Проверьте URL.</div>';
+  }
+}
+
+function statusClass(s) {
+  if (!s) return 's-new';
+  s = s.toLowerCase();
+  if (s.includes('консульт')) return 's-consult';
+  if (s.includes('опера'))    return 's-op';
+  if (s.includes('выполн'))   return 's-done';
+  if (s.includes('отмен'))    return 's-cancel';
+  return 's-new';
+}
+
+function renderPatients(list) {
+  const el = document.getElementById('patients-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><i class="ti ti-user-off"></i>Пациентов нет</div>';
+    return;
+  }
+  el.innerHTML = list.map((p, i) => {
+    const idx = allPatients.indexOf(p);
+    const meta = [p.city, p.age ? p.age+' лет' : '', p.imt ? 'ИМТ '+p.imt : ''].filter(Boolean).join(' · ');
+    return '<div class="patient-card" onclick="openDetail('+idx+')">' +
+      '<div class="pc-row">' +
+        '<span class="pc-name">'+(p.name||'—')+'</span>' +
+        '<span class="status-badge '+statusClass(p.status)+'">'+(p.status||'Новая')+'</span>' +
+      '</div>' +
+      (meta ? '<div class="pc-meta">'+meta+'</div>' : '') +
+      (p.date ? '<div class="pc-date">'+p.date+'</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function filterPatients() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  if (!q) { renderPatients(allPatients); return; }
+  renderPatients(allPatients.filter(p =>
+    (p.name||'').toLowerCase().includes(q) ||
+    (p.city||'').toLowerCase().includes(q) ||
+    (p.status||'').toLowerCase().includes(q) ||
+    (p.phone||'').toLowerCase().includes(q) ||
+    (p.diagnoses||'').toLowerCase().includes(q)
+  ));
+}
+
+function openDetail(idx) {
+  const p = allPatients[idx];
+  const fields = [
+    ['Дата заявки', p.date], ['Телефон / Telegram', p.phone],
+    ['Откуда заявка', p.source], ['Город', p.city],
+    ['Возраст', p.age ? p.age+' лет' : ''], ['Вес', p.weight ? p.weight+' кг' : ''],
+    ['Рост', p.height ? p.height+' см' : ''], ['ИМТ', p.imt],
+    ['Диагнозы', p.diagnoses], ['Статус', p.status],
+    ['Дата консультации', p.consultDate], ['Дата операции', p.opDate],
+    ['Комментарий', p.comment]
+  ].filter(f => f[1]);
+
+  document.getElementById('detail-content').innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+      '<div>' +
+        '<div class="detail-name">'+(p.name||'—')+'</div>' +
+        '<span class="status-badge '+statusClass(p.status)+'">'+(p.status||'Новая')+'</span>' +
+      '</div>' +
+      '<button class="btn-secondary" onclick="startEdit('+idx+')" style="padding:8px 12px;"><i class="ti ti-edit"></i> Изменить</button>' +
+    '</div>' +
+    '<div class="card">' +
+      fields.map(f =>
+        '<div class="detail-row"><span class="dk">'+f[0]+'</span><span class="dv">'+f[1]+'</span></div>'
+      ).join('') +
+    '</div>';
+
+  document.getElementById('detail-view').style.display = 'block';
+  document.getElementById('list-view').style.display = 'none';
+}
+
+function closeDetail() {
+  document.getElementById('detail-view').style.display = 'none';
+  document.getElementById('list-view').style.display = 'block';
+}
+
+function startEdit(idx) {
+  const p = allPatients[idx];
+  currentEditRow = p._row;
+  document.getElementById('f-date').value        = p.date || '';
+  document.getElementById('f-phone').value       = p.phone || '';
+  document.getElementById('f-source').value      = p.source || '';
+  document.getElementById('f-name').value        = p.name || '';
+  document.getElementById('f-city').value        = p.city || '';
+  document.getElementById('f-weight').value      = p.weight || '';
+  document.getElementById('f-height').value      = p.height || '';
+  document.getElementById('f-age').value         = p.age || '';
+  document.getElementById('f-imt').value         = p.imt || '';
+  document.getElementById('f-diag').value        = p.diagnoses || '';
+  document.getElementById('f-status').value      = p.status || 'Новая';
+  document.getElementById('f-consult').value     = p.consultDate || '';
+  document.getElementById('f-op').value          = p.opDate || '';
+  document.getElementById('f-comment').value     = p.comment || '';
+  calcIMT();
+  switchTab('add');
+  const btn = document.getElementById('submit-btn');
+  btn.innerHTML = '<i class="ti ti-device-floppy"></i> Сохранить изменения';
+  btn.onclick = savePatientEdit;
+  window.scrollTo(0, 0);
+}
+
+function saveUrl() {
+  scriptUrl = document.getElementById('cfg-url').value.trim();
+  localStorage.setItem('patients_script_url', scriptUrl);
+  document.getElementById('url-saved').style.display = scriptUrl ? 'block' : 'none';
+}
+
+function copyScript() {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(SCRIPT_CODE).then(() => showToast('Код скопирован!'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = SCRIPT_CODE;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Код скопирован!');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
