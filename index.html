@@ -402,13 +402,14 @@ function calcIMT() {
   const h = parseFloat(document.getElementById('f-height').value);
   const lbl = document.getElementById('imt-label');
   if (w && h && h > 50) {
-    const imt = (w / Math.pow(h/100, 2)).toFixed(1);
+    const imtNum = (w / Math.pow(h/100, 2));
+    const imt = imtNum.toFixed(1).replace('.', ',');
     document.getElementById('f-imt').value = imt;
     let cls, txt;
-    if (imt < 18.5)      { cls='imt-low';   txt='Дефицит веса — ИМТ '+imt; }
-    else if (imt < 25)   { cls='imt-norm';  txt='Норма — ИМТ '+imt; }
-    else if (imt < 30)   { cls='imt-over';  txt='Избыток веса — ИМТ '+imt; }
-    else                 { cls='imt-obese'; txt='Ожирение — ИМТ '+imt; }
+    if (imtNum < 18.5)      { cls='imt-low';   txt='Дефицит веса — ИМТ '+imtNum; }
+    else if (imtNum < 25)   { cls='imt-norm';  txt='Норма — ИМТ '+imtNum; }
+    else if (imtNum < 30)   { cls='imt-over';  txt='Избыток веса — ИМТ '+imtNum; }
+    else                 { cls='imt-obese'; txt='Ожирение — ИМТ '+imtNum; }
     lbl.innerHTML = '<span class="imt-badge '+cls+'">'+txt+'</span>';
   } else {
     document.getElementById('f-imt').value = '';
