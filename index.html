@@ -321,47 +321,59 @@
 <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-text">Готово!</span></div>
 
 <script>
-const SCRIPT_CODE = `function doPost(e) {
+const SCRIPT_CODE = `// Всё через GET — работает из Safari и iPhone без CORS-ошибок
+function doGet(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var data = JSON.parse(e.postData.contents);
-  if (data.action === 'add') {
-    sheet.appendRow([
-      data.date, data.phone, data.source, data.name,
-      data.city, data.weight, data.height, data.age,
-      data.imt, data.diagnoses, data.status,
-      data.consultDate, data.opDate, data.comment
-    ]);
-    return ContentService.createTextOutput(JSON.stringify({ok:true}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-  if (data.action === 'getAll') {
+  var p = e.parameter;
+  var action = p.action || '';
+
+  if (action === 'getAll') {
     var rows = sheet.getDataRange().getValues();
     var result = [];
     for (var i = 1; i < rows.length; i++) {
       var r = rows[i];
+      if (!r[3] && !r[1]) continue; // пропускаем пустые строки
       result.push({
         _row: i + 1,
-        date: r[0], phone: r[1], source: r[2], name: r[3],
-        city: r[4], weight: r[5], height: r[6], age: r[7],
-        imt: r[8], diagnoses: r[9], status: r[10],
+        date: r[0],  phone: r[1],        source: r[2],
+        name: r[3],  city:  r[4],        weight: r[5],
+        height: r[6], age:  r[7],        imt:    r[8],
+        diagnoses: r[9], status: r[10],
         consultDate: r[11], opDate: r[12], comment: r[13]
       });
     }
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
+    return respond(result);
   }
-  if (data.action === 'update') {
-    sheet.getRange(data._row, 1, 1, 14).setValues([[
-      data.date, data.phone, data.source, data.name,
-      data.city, data.weight, data.height, data.age,
-      data.imt, data.diagnoses, data.status,
-      data.consultDate, data.opDate, data.comment
+
+  if (action === 'add') {
+    sheet.appendRow([
+      p.date,        p.phone,       p.source, p.name,
+      p.city,        p.weight,      p.height, p.age,
+      p.imt,         p.diagnoses,   p.status,
+      p.consultDate, p.opDate,      p.comment
+    ]);
+    return respond({ok: true});
+  }
+
+  if (action === 'update') {
+    var row = parseInt(p._row);
+    sheet.getRange(row, 1, 1, 14).setValues([[
+      p.date,        p.phone,       p.source, p.name,
+      p.city,        p.weight,      p.height, p.age,
+      p.imt,         p.diagnoses,   p.status,
+      p.consultDate, p.opDate,      p.comment
     ]]);
-    return ContentService.createTextOutput(JSON.stringify({ok:true}))
-      .setMimeType(ContentService.MimeType.JSON);
+    return respond({ok: true});
   }
+
+  return respond({ok: true, status: 'ready'});
 }
-function doGet(e) { return doPost(e); }`;
+
+function respond(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
 
 let allPatients = [];
 let scriptUrl = localStorage.getItem('patients_script_url') || '';
@@ -437,6 +449,14 @@ function resetForm() {
   btn.onclick = submitPatient;
 }
 
+// Helper: all requests go as GET with URL params — no CORS issues
+function callScript(params) {
+  const url = scriptUrl + '?' + Object.entries(params)
+    .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v || ''))
+    .join('&') + '&_=' + Date.now();
+  return fetch(url).then(r => r.json());
+}
+
 async function submitPatient() {
   if (!scriptUrl) { alert('Сначала настройте URL скрипта во вкладке «Настройка»'); return; }
   const data = getFormData('add');
@@ -445,7 +465,7 @@ async function submitPatient() {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader"></i> Отправка...';
   try {
-    await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(data) });
+    await callScript(data);
     showToast('Пациент добавлен!');
     resetForm();
   } catch(e) {
@@ -463,7 +483,7 @@ async function savePatientEdit() {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader"></i> Сохранение...';
   try {
-    await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(data) });
+    await callScript(data);
     showToast('Изменения сохранены!');
     resetForm();
   } catch(e) {
@@ -479,9 +499,8 @@ async function loadPatients() {
   }
   document.getElementById('patients-list').innerHTML = '<div class="empty"><i class="ti ti-loader"></i>Загрузка...</div>';
   try {
-    const r = await fetch(scriptUrl + '?action=getAll&_=' + Date.now());
-    const text = await r.text();
-    allPatients = JSON.parse(text);
+    const result = await callScript({ action: 'getAll' });
+    allPatients = Array.isArray(result) ? result : [];
     renderPatients(allPatients);
     document.getElementById('patient-count').textContent = allPatients.length + ' пациентов';
   } catch(e) {
