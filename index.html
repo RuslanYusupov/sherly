@@ -42,7 +42,7 @@
   body { overscroll-behavior: none; }
 
   .app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg2); }
-
+  
   /* Header */
   .header { background: var(--bg); padding: 52px 16px 12px; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
   .header-row { display: flex; align-items: center; gap: 10px; }
@@ -115,6 +115,14 @@
   .s-op { background: #dcfce7; color: #166534; }
   .s-done { background: #ede9fe; color: #5b21b6; }
   .s-cancel { background: #fee2e2; color: #991b1b; }
+
+  /* Sorting */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; padding: 7px 14px; background: var(--bg); border: 0.5px solid var(--border); border-radius: 20px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; white-space: nowrap; font-family: inherit; }
+  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .sort-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .sort-row select { flex: 1; padding: 10px 12px; background: var(--bg); border: none; border-radius: var(--radius); font-size: 14px; color: var(--text); font-family: inherit; outline: none; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 
   /* Detail */
   .detail-back { display: flex; align-items: center; gap: 6px; background: none; border: none; font-size: 16px; color: var(--accent); cursor: pointer; font-family: inherit; padding: 0 0 14px; }
@@ -283,6 +291,23 @@
           <i class="ti ti-search"></i>
           <input type="text" id="search-input" placeholder="Поиск..." oninput="filterPatients()">
         </div>
+        <div class="filter-bar">
+          <button class="chip active" data-status="" onclick="setFilter('')">Все</button>
+          <button class="chip" data-status="Новая" onclick="setFilter('Новая')">Новая</button>
+          <button class="chip" data-status="На консультации" onclick="setFilter('На консультации')">На консультации</button>
+          <button class="chip" data-status="На операции" onclick="setFilter('На операции')">На операции</button>
+          <button class="chip" data-status="Выполнено" onclick="setFilter('Выполнено')">Выполнено</button>
+          <button class="chip" data-status="Отмена" onclick="setFilter('Отмена')">Отмена</button>
+        </div>
+        <div class="sort-row">
+          <select id="sort-select" onchange="filterPatients()">
+            <option value="date-desc">Сначала новые</option>
+            <option value="date-asc">Сначала старые</option>
+            <option value="name-asc">Имя А–Я</option>
+            <option value="name-desc">Имя Я–А</option>
+            <option value="op-asc">По дате операции</option>
+          </select>
+        </div>
         <div id="patients-list"></div>
       </div>
     </div>
@@ -378,6 +403,7 @@ function respond(data) {
 }`;
 
 let allPatients = [];
+let activeFilter = '';
 let scriptUrl = localStorage.getItem('patients_script_url') || '';
 let currentEditRow = null;
 
@@ -418,7 +444,15 @@ function calcIMT() {
     lbl.innerHTML = '';
   }
 }
-
+  
+function setFilter(status) {
+  activeFilter = status;
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.status === status);
+  });
+  filterPatients();
+}
+  
 function getFormData(action) {
   return {
     action: action || 'add',
@@ -543,16 +577,30 @@ function renderPatients(list) {
 
 function filterPatients() {
   const q = document.getElementById('search-input').value.toLowerCase();
-  if (!q) { renderPatients(allPatients); return; }
-  renderPatients(allPatients.filter(p =>
-    (p.name||'').toLowerCase().includes(q) ||
-    (p.city||'').toLowerCase().includes(q) ||
-    (p.status||'').toLowerCase().includes(q) ||
-    (p.phone||'').toLowerCase().includes(q) ||
-    (p.diagnoses||'').toLowerCase().includes(q)
-  ));
-}
+  const sortKey = document.getElementById('sort-select').value;
 
+  let list = allPatients.filter(p => {
+    if (activeFilter && (p.status || 'Новая') !== activeFilter) return false;
+    if (!q) return true;
+    return (p.name||'').toLowerCase().includes(q) ||
+           (p.city||'').toLowerCase().includes(q) ||
+           (p.status||'').toLowerCase().includes(q) ||
+           (p.phone||'').toLowerCase().includes(q) ||
+           (p.diagnoses||'').toLowerCase().includes(q);
+  });
+
+  const cmp = {
+    'date-desc': (a, b) => (b.date||'').localeCompare(a.date||''),
+    'date-asc':  (a, b) => (a.date||'').localeCompare(b.date||''),
+    'name-asc':  (a, b) => (a.name||'').localeCompare(b.name||'', 'ru'),
+    'name-desc': (a, b) => (b.name||'').localeCompare(a.name||'', 'ru'),
+    'op-asc':    (a, b) => (a.opDate||'9999').localeCompare(b.opDate||'9999'),
+  }[sortKey];
+
+  list.sort(cmp);
+  renderPatients(list);
+}
+  
 function openDetail(idx) {
   const p = allPatients[idx];
   const fields = [
