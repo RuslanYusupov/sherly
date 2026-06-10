@@ -583,11 +583,11 @@ function filterPatients() {
   let list = allPatients.filter(p => {
     if (activeFilter && (p.status || 'Новая') !== activeFilter) return false;
     if (!q) return true;
-    return (p.name||'').toLowerCase().includes(q) ||
-           (p.city||'').toLowerCase().includes(q) ||
-           (p.status||'').toLowerCase().includes(q) ||
-           (p.phone||'').toLowerCase().includes(q) ||
-           (p.diagnoses||'').toLowerCase().includes(q);
+    return (p.name||'').toLowerCase().includes(q.toLowerCase()) ||
+           (p.city||'').toLowerCase().includes(q.toLowerCase()) ||
+           (p.status||'').toLowerCase().includes(q.toLowerCase()) ||
+           (p.phone||'').toLowerCase().includes(q.toLowerCase()) ||
+           (p.diagnoses||'').toLowerCase().includes(q.toLowerCase());
   });
 
   const cmp = {
