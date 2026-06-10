@@ -581,7 +581,7 @@ function filterPatients() {
   const sortKey = document.getElementById('sort-select').value;
 
   let list = allPatients.filter(p => {
-    if (activeFilter && (p.status || 'Новая') !== activeFilter) return false;
+    if (activeFilter && !(p.status || '').toLowerCase().replace(/\s+/g, '').includes(activeFilter.toLowerCase().replace(/\s+/g, ''))) return false;
     if (!q) return true;
     return (p.name||'').toLowerCase().includes(q.toLowerCase()) ||
            (p.city||'').toLowerCase().includes(q.toLowerCase()) ||
